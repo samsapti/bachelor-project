@@ -12,5 +12,8 @@ deps: patch
 	$(MAKE) -C $(MP_SPDZ_PATH) boost
 	$(MAKE) -C $(MP_SPDZ_PATH) libote mpir
 
+%.mpc:
+	cd $(MP_SPDZ_PATH) && ./compile.py ../$@
+
 %:
 	$(MAKE) -C $(MP_SPDZ_PATH) $@
