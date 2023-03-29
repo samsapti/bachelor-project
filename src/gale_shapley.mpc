@@ -146,3 +146,8 @@ class Matchmaker:
         self.int_type = int_type
         self.basic_type = int_type.basic_type
         print('match', self.oram_type)
+
+
+mm = Matchmaker(5, oram_type=OptimalORAM)
+mm.init_easy()
+mm.match()
