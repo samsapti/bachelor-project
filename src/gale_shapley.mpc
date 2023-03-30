@@ -148,6 +148,6 @@ class Matchmaker:
         print('match', self.oram_type)
 
 
-mm = Matchmaker(5, oram_type=OptimalORAM)
+mm = Matchmaker(50, oram_type=OptimalORAM)
 mm.init_easy()
 mm.match()

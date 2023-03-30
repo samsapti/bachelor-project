@@ -2,5 +2,5 @@
 
 MACHINE="$1"
 shift
-cd src/MP-SPDZ
+cd MP-SPDZ
 "./$MACHINE" "$@"
