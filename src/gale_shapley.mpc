@@ -7,7 +7,7 @@ from Compiler.util import *
 from Compiler.oram import OptimalORAM
 
 from Compiler.library import for_range, do_while, time, if_, print_ln, crash, print_str
-from Compiler.gs import OMatrix, OStack
+from Compiler.gs import OMatrix, OMatrixRow, OStack
 
 
 class Matchmaker:
@@ -43,36 +43,18 @@ class Matchmaker:
 
     def engage(self, man, woman, for_real):
         self.wives.access(man, woman, for_real)
-        # self.husbands.ram[0].x[0].reveal().print_reg('a')
         self.husbands.access(woman, man, for_real)
-        # self.husbands.ram[0].x[0].reveal().print_reg('b')
-        # (man * 10 + woman * 1 + for_real * 100).reveal().print_reg('eng')
-        # if for_real:
-        #     print 'engage', man, woman
-        #     self.wives[man] = woman
-        #     self.husbands[woman] = man
 
     def dump(self, man, woman, for_real):
         self.wives.delete(man, for_real)
-        # self.husbands.ram[0].x[0].reveal().print_reg('c')
         self.husbands.delete(woman, for_real)
-        # self.husbands.ram[0].x[0].reveal().print_reg('d')
         self.unengaged.append(man, for_real)
-        # self.husbands.ram[0].x[0].reveal().print_reg('e')
-        # (man * 10 + woman + for_real * 100).reveal().print_reg('dump')
-        # if for_real:
-        #     print 'dump', man, woman
-        #     self.wives[man] = clown
-        #     self.husbands[woman] = clown
 
     def propose(self, man, woman, for_real):
         (fiance,), free = self.husbands.read(woman)
-        # self.husbands.ram[0].x[0].reveal().print_reg('f')
         engaged = 1 - free
         rank_man = self.f_ranks[woman][man]
-        # self.husbands.ram[0].x[0].reveal().print_reg('g')
         (rank_fiance,), worst_fiance = self.f_ranks[woman].read(engaged*fiance)
-        # self.husbands.ram[0].x[0].reveal().print_reg('h')
         leaving = self.int_type(rank_man) < self.int_type(rank_fiance)
         if self.M < self.N:
             leaving = 1 - (1 - leaving) * (1 - worst_fiance)
@@ -84,7 +66,6 @@ class Matchmaker:
         self.dump(fiance, woman, engaged * leaving * for_real)
         self.engage(man, woman, (1 - (engaged * (1 - leaving))) * for_real)
         self.unengaged.append(man, engaged * (1 - leaving) * for_real)
-        # self.husbands.ram[0].x[0].reveal().print_reg('i')
 
     def match(self, n_loops=None):
         if n_loops is None or n_loops > self.N * self.M:
@@ -115,20 +96,16 @@ class Matchmaker:
             rounds.iadd(1)
             time()
             man = self.unengaged.pop()
-            # self.husbands.ram[0].x[0].reveal().print_reg('j')
             pref = self.int_type(propose[man])
             if self.M < self.N and n_loops is None:
                 @if_((pref == self.M).reveal())
                 def f():
                     print_ln('run out of acceptable women')
                     crash()
-            # self.husbands.ram[0].x[0].reveal().print_reg('k')
             propose[man] = pref + 1
-            # self.husbands.ram[0].x[0].reveal().print_reg('l')
             self.propose(man, self.m_prefs[man][pref], True)
             print_ln('man: %s, pref: %s, left: %s',
                      *(x.reveal() for x in (man, pref, self.unengaged.size)))
-            # self.wives[man].reveal().print_reg('wife')
             return types.regint((self.unengaged.size > 0).reveal())
         print_ln('%s rounds', rounds)
 
@@ -148,6 +125,38 @@ class Matchmaker:
         print('match', self.oram_type)
 
 
-mm = Matchmaker(50, oram_type=OptimalORAM)
-mm.init_easy()
-mm.match()
+""" CONSTANTS """
+
+PLAYERS = 3
+MATCHING_SIZE = 2
+
+
+""" Assembling lists """
+
+p_shares = Matrix(rows=PLAYERS, columns=MATCHING_SIZE, value_type=sint)
+
+# Fill data from players into the matrix
+# The matrix is ordered as m[row:player][col:share]
+@for_range(PLAYERS)
+def _(i):
+    @for_range(MATCHING_SIZE)
+    def _(j):
+        p_shares[i][j] = sint.get_input_from(i)
+
+@for_range(PLAYERS)
+def _(i):
+    @for_range(MATCHING_SIZE)
+    def _(j):
+        print_ln('input from player %s: %s', i, p_shares[i][j].reveal())
+
+# Add entire column together to reveal secret-shared input
+
+@for_range(MATCHING_SIZE)
+def _(i):
+    col = p_shares.get_column(i)
+    print_ln('res: %s', sum(col).reveal())
+
+
+# mm = Matchmaker(50, oram_type=OptimalORAM)
+# mm.init_easy()
+# mm.match()
