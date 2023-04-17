@@ -1,0 +1,25 @@
+# vim: ft=yaml.ansible
+---
+- name: Set up MPC players
+  hosts: all
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Create user {{ username }}
+      ansible.builtin.user:
+        name: "{{ username }}"
+        password: "{{ secrets.user_password | password_hash('sha512') }}"
+        groups:
+          - sudo
+        state: present
+
+    - name: Add public SSH key to user {{ username }}
+      ansible.posix.authorized_key:
+        user: "{{ username }}"
+        key: "{{ ssh_key }}"
+        exclusive: true
+
+    - name: Run role mp_spdz
+      ansible.builtin.import_role:
+        name: mp_spdz
+      become_user: "{{ username }}"

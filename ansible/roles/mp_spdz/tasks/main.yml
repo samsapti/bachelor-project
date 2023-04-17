@@ -1,0 +1,49 @@
+# vim: ft=yaml.ansible
+---
+- name: Install dependencies via apt
+  ansible.builtin.apt:
+    name: "{{ pkgs }}"
+    state: present
+  become_user: root
+  vars:
+    pkgs:
+      - automake
+      - build-essential
+      - clang
+      - cmake
+      - git
+      - libntl-dev
+      - libsodium-dev
+      - libssl-dev
+      - libtool
+      - m4
+      - python3
+      - texinfo
+      - yasm
+
+- name: Clone MP-SPDZ
+  ansible.builtin.git:
+    repo: https://github.com/data61/MP-SPDZ
+    dest: "{{ mp_spdz_dir }}"
+    version: v0.3.5
+    clone: true
+    update: true
+    recursive: true
+    depth: 1
+
+- name: Patch CONFIG
+  ansible.builtin.lineinfile:
+    path: "{{ mp_spdz_dir }}/CONFIG"
+    regexp: '^ARCH = -march=native$'
+    state: absent
+
+- name: Build MP-SPDZ
+  community.general.make:
+    chdir: "{{ mp_spdz_dir }}"
+    jobs: "{{ ansible_processor_nproc }}"
+    target: "{{ item }}"
+  loop:
+    - boost
+    - libote
+    - mpir
+    - all
