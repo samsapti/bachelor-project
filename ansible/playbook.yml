@@ -9,9 +9,10 @@
       ansible.builtin.user:
         name: "{{ username }}"
         password: "{{ secrets.user_password | ansible.builtin.password_hash('sha512') }}"
-        update_password: on_create
+        shell: /bin/bash
         groups:
           - sudo
+        update_password: on_create
         state: present
 
     - name: Add public SSH key to user {{ username }}
