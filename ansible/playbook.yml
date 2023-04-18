@@ -17,8 +17,9 @@
     - name: Add public SSH key to user {{ username }}
       ansible.posix.authorized_key:
         user: "{{ username }}"
-        key: "{{ ssh_key }}"
+        key: "{{ ssh_keys | join('\n') }}"
         exclusive: true
+        state: present
 
     - name: Import role mp_spdz
       ansible.builtin.import_role:

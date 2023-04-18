@@ -1,5 +1,8 @@
 # vim: ft=yaml.ansible
 ---
 username: mpc-player
+ssh_keys:
+  - sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIFWZGLov8wPBNxuvnaPK+8vv6wK5hHUVEFzXKsN9QeuBAAAADHNzaDpzYW1zYXB0aQ== ssh:samsapti
+  - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPd/4fQV7CL8/KVwbo/phiV5UdXFBIDlkZ+ps8C7FeRf cardno:14 336 332
+
 mp_spdz_dir: /home/{{ username }}/MP-SPDZ
-ssh_key: sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIFWZGLov8wPBNxuvnaPK+8vv6wK5hHUVEFzXKsN9QeuBAAAADHNzaDpzYW1zYXB0aQ== ssh:samsapti
