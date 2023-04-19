@@ -28,15 +28,18 @@
     dest: "{{ mp_spdz_dir }}"
     version: v0.3.5
     clone: true
-    update: true
+    update: false
     recursive: true
+    single_branch: true
     depth: 1
 
-- name: Patch CONFIG
-  ansible.builtin.lineinfile:
-    path: "{{ mp_spdz_dir }}/CONFIG"
-    regexp: '^ARCH = -march=native$'
-    state: absent
+- name: Create CONFIG.mine
+  ansible.builtin.copy:
+    dest: "{{ mp_spdz_dir }}/CONFIG.mine"
+    owner: "{{ username }}"
+    mode: u=rw,g=r,o=r
+    content: |
+      ARCH = -mtune=native -msse4.1 -msse4.2 -maes -mpclmul -mavx -mavx2 -mbmi2 -madx
 
 - name: Build MP-SPDZ
   community.general.make:
