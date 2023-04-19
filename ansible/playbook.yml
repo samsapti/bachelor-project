@@ -5,6 +5,11 @@
   gather_facts: true
   become: true
   tasks:
+    - name: Upgrade system packages
+      ansible.builtin.apt:
+        update_cache: true
+        upgrade: full
+
     - name: Create user {{ username }}
       ansible.builtin.user:
         name: "{{ username }}"
