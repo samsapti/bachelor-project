@@ -27,7 +27,7 @@
         shell: /bin/bash
         groups:
           - sudo
-        update_password: on_create
+        update_password: always
         state: present
 
     - name: Add public SSH key to user {{ username }}
