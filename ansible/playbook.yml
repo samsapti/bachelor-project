@@ -30,7 +30,7 @@
         update_password: always
         state: present
 
-    - name: Add public SSH key to user {{ username }}
+    - name: Add public SSH keys to user {{ username }}
       ansible.posix.authorized_key:
         user: "{{ username }}"
         key: "{{ ssh_keys | join('\n') }}"
