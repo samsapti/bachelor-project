@@ -10,6 +10,16 @@
         update_cache: true
         upgrade: full
 
+    - name: Check if a reboot is needed
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: needs_reboot
+
+    - name: Reboot host
+      ansible.builtin.reboot:
+      when: needs_reboot.stat.exists or
+            (force_reboot is defined and force_reboot)
+
     - name: Create user {{ username }}
       ansible.builtin.user:
         name: "{{ username }}"
