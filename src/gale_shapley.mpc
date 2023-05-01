@@ -17,31 +17,31 @@ class Matchmaker:
     ABN 41 687 119 230, published under the BSD 3-Clause Licence
     """
 
-    def engage(self, patient, therapist, for_real):
-        self.wives.access(patient, therapist, for_real)
-        self.husbands.access(therapist, patient, for_real)
+    def pair(self, patient, therapist, for_real):
+        self.paired_therapists.access(patient, therapist, for_real)
+        self.paired_patients.access(therapist, patient, for_real)
 
-    def dump(self, patient, therapist, for_real):
-        self.wives.delete(patient, for_real)
-        self.husbands.delete(therapist, for_real)
-        self.unengaged.append(patient, for_real)
+    def unpair(self, patient, therapist, for_real):
+        self.paired_therapists.delete(patient, for_real)
+        self.paired_patients.delete(therapist, for_real)
+        self.unpaired.append(patient, for_real)
 
-    def propose(self, patient, therapist, for_real):
-        (fiance,), free = self.husbands.read(therapist)
-        engaged = 1 - free
-        rank_man = self.t_exps[therapist][patient]
-        (rank_fiance,), worst_fiance = self.t_exps[therapist].read(engaged*fiance)
-        leaving = self.int_type(rank_man) < self.int_type(rank_fiance)
+    def request_therapist(self, patient, therapist, for_real):
+        (requested_therapist,), free = self.paired_patients.read(therapist)
+        paired = 1 - free
+        rank_patient = self.t_exps[therapist][patient]
+        (rank_requested_therapist,), worst_therapist = self.t_exps[therapist].read(paired*requested_therapist)
+        leaving = self.int_type(rank_patient) < self.int_type(rank_requested_therapist)
         if self.M < self.N:
-            leaving = 1 - (1 - leaving) * (1 - worst_fiance)
-        print_str('woman: %s, man: %s, fiance: %s, worst fiance: %s, ',
-                  *(x.reveal() for x in (therapist, patient, fiance, worst_fiance)))
-        print_ln('rank man: %s, rank fiance: %s, engaged: %s, leaving: %s',
+            leaving = 1 - (1 - leaving) * (1 - worst_therapist)
+        print_str('therapist: %s, patient: %s, requested therapist: %s, worst therapist: %s, ',
+                  *(x.reveal() for x in (therapist, patient, requested_therapist, worst_therapist)))
+        print_ln('rank patient: %s, rank requested therapist: %s, paired: %s, leaving: %s',
                  *(x.reveal() for x in
-                   (rank_man, rank_fiance, engaged, leaving)))
-        self.dump(fiance, therapist, engaged * leaving * for_real)
-        self.engage(patient, therapist, (1 - (engaged * (1 - leaving))) * for_real)
-        self.unengaged.append(patient, engaged * (1 - leaving) * for_real)
+                   (rank_patient, rank_requested_therapist, paired, leaving)))
+        self.unpair(requested_therapist, therapist, paired * leaving * for_real)
+        self.pair(patient, therapist, (1 - (paired * (1 - leaving))) * for_real)
+        self.unpaired.append(patient, paired * (1 - leaving) * for_real)
 
     def match(self, n_loops=None):
         if n_loops is None or n_loops > self.N * self.M:
@@ -50,45 +50,45 @@ class Matchmaker:
         else:
             loop = for_range(n_loops)
             init_rounds = n_loops / self.M
-        self.wives = \
+        self.paired_therapists = \
             self.oram_type(self.N, entry_size=log2(self.N),
                            init_rounds=0, value_type=self.basic_type)
-        self.husbands = \
+        self.paired_patients = \
             self.oram_type(self.N, entry_size=log2(self.N),
                            init_rounds=0, value_type=self.basic_type)
-        propose = \
+        request_therapist = \
             self.oram_type(self.N, entry_size=log2(self.N),
                            init_rounds=0, value_type=self.basic_type)
-        self.unengaged = OStack(self.N, oram_type=self.oram_type,
+        self.unpaired = OStack(self.N, oram_type=self.oram_type,
                                 int_type=self.int_type)
 
         @for_range(init_rounds)
-        def f(i):
-            self.unengaged.append(i)
+        def _(i):
+            self.unpaired.append(i)
         rounds = types.MemValue(types.regint(0))
 
         @loop
-        def f(i=None):
+        def _(i=None):
             rounds.iadd(1)
             time()
-            patient = self.unengaged.pop()
-            pref = self.int_type(propose[patient])
+            patient = self.unpaired.pop()
+            pref = self.int_type(request_therapist[patient])
             if self.M < self.N and n_loops is None:
                 @if_((pref == self.M).reveal())
-                def f():
-                    print_ln('run out of acceptable women')
+                def _():
+                    print_ln('run out of acceptable therapists')
                     crash()
-            propose[patient] = pref + 1
-            self.propose(patient, self.p_cases[patient][pref], True)
-            print_ln('man: %s, pref: %s, left: %s',
-                     *(x.reveal() for x in (patient, pref, self.unengaged.size)))
-            return types.regint((self.unengaged.size > 0).reveal())
+            request_therapist[patient] = pref + 1
+            self.request_therapist(patient, self.p_cases[patient][pref], True)
+            print_ln('patient: %s, pref: %s, left: %s',
+                     *(x.reveal() for x in (patient, pref, self.unpaired.size)))
+            return types.regint((self.unpaired.size > 0).reveal())
         print_ln('%s rounds', rounds)
 
         @for_range(init_rounds)
-        def f(i):
-            types.cint(i).print_reg('wife')
-            self.husbands[i].reveal().print_reg('husb')
+        def _(i):
+            types.cint(i).print_reg('ther')
+            self.paired_patients[i].reveal().print_reg('pati')
 
     def __init__(self, N, p_cases, t_exps, M=1, reverse=False,
                  oram_type=OptimalORAM, int_type=types.sint):
@@ -111,8 +111,8 @@ MATCHING_SIZE = 2
 
 """ Assembling lists """
 
-p_shares = Matrix(rows=PLAYERS, columns=MATCHING_SIZE, value_type=sint)
-t_shares = Matrix(rows=PLAYERS, columns=MATCHING_SIZE, value_type=sint)
+p_shares = Matrix(rows=PLAYERS, columns=MATCHING_SIZE, value_type=types.sint)
+t_shares = Matrix(rows=PLAYERS, columns=MATCHING_SIZE, value_type=types.sint)
 
 # Fill data from players into the patient matrix
 # The matrix is ordered as m[row:player][col:share]
