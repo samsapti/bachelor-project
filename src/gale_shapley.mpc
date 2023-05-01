@@ -7,7 +7,7 @@ from Compiler.util import *
 from Compiler.oram import OptimalORAM
 
 from Compiler.library import for_range, do_while, time, if_, print_ln, crash, print_str
-from Compiler.gs import OMatrix, OMatrixRow, OStack
+from Compiler.gs import OMatrix, OStack
 
 
 class Matchmaker:
@@ -103,44 +103,39 @@ class Matchmaker:
         print('match', N, M)
 
 
-""" CONSTANTS """
-
+# Constants
 PLAYERS = 3
-MATCHING_SIZE = 2
-
-
-""" Assembling lists """
+MATCHING_SIZE = 5
 
 p_shares = Matrix(rows=PLAYERS, columns=MATCHING_SIZE, value_type=types.sint)
 t_shares = Matrix(rows=PLAYERS, columns=MATCHING_SIZE, value_type=types.sint)
 
-# Fill data from players into the patient matrix
+# Fill data from players into the matrices
 # The matrix is ordered as m[row:player][col:share]
 @for_range(PLAYERS)
 def _(i):
-    @for_range(MATCHING_SIZE)
-    def _(j):
-        p_shares[i][j] = sint.get_input_from(i)
+    p_index = MemValue(cint(0))
+    t_index = MemValue(cint(0))
 
-# Fill data from players into the therapist matrix
-# The matrix is ordered as m[row:player][col:share]
-@for_range(PLAYERS)
-def _(i):
-    @for_range(MATCHING_SIZE)
-    def _(j):
-        t_shares[i][j] = sint.get_input_from(i)
+    @do_while
+    def _():
+        try:
+            typ = sint.get_input_from(i)
 
-@for_range(PLAYERS)
-def _(i):
-    @for_range(MATCHING_SIZE)
-    def _(j):
-        print_ln('input from player %s: %s', i, p_shares[i][j].reveal())
+            @if_e(typ == -100)
+            def _():
+                p_shares[i][p_index.read()] = sint.get_input_from(i)
+                p_index.iadd(1)
+            @else_
+            def _():
+                @if_(typ == -200)
+                def _():
+                    t_shares[i][t_index.read()] = sint.get_input_from(i)
+                    t_index.iadd(1)
 
-@for_range(PLAYERS)
-def _(i):
-    @for_range(MATCHING_SIZE)
-    def _(j):
-        print_ln('input from player %s: %s', i, t_shares[i][j].reveal())
+            return 1
+        except Exception:
+            return 0
 
 # Add entire column together to reveal secret-shared input
 p_cases = OMatrix(N=MATCHING_SIZE, M=1, oram_type=OptimalORAM, int_type=types.sint)
@@ -148,12 +143,8 @@ t_exps = OMatrix(N=MATCHING_SIZE, M=1, oram_type=OptimalORAM, int_type=types.sin
 
 @for_range(MATCHING_SIZE)
 def _(i):
-    p_val = sum(p_shares.get_column(i))
-    p_cases[i][0] = p_val
-    t_val = sum(t_shares.get_column(i))
-    t_exps[i][0] = t_val
-    print_ln('p_res: %s', p_val.reveal())
-    print_ln('t_res: %s', t_val.reveal())
+    p_cases[i][0] = sum(p_shares.get_column(i))
+    t_exps[i][0] = sum(t_shares.get_column(i))
 
 mm = Matchmaker(MATCHING_SIZE, p_cases, t_exps)
 mm.match()
