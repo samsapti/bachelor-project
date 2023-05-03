@@ -1,2 +1,3 @@
 /ansible/inventory
 /ansible/.vagrant/
+/src/out-p?.txt

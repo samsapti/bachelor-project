@@ -1,6 +1,7 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
-MACHINE="$1"
-shift
 cd MP-SPDZ
-"./$MACHINE" "$@"
+
+for i in $(seq 0 2); do
+    eval ".//semi-party.x -N 3 -p $i gale_shapley > ../out-p$i.txt 2>&1 &"
+done

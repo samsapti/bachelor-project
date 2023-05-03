@@ -105,7 +105,7 @@ class Matchmaker:
 
 # Constants
 PLAYERS = 3
-MATCHING_SIZE = 5
+MATCHING_SIZE = 10
 
 p_shares = Matrix(rows=PLAYERS, columns=MATCHING_SIZE, value_type=types.sint)
 t_shares = Matrix(rows=PLAYERS, columns=MATCHING_SIZE, value_type=types.sint)
@@ -120,7 +120,7 @@ def _(i):
     @do_while
     def _():
         try:
-            typ = sint.get_input_from(i)
+            typ = cint.get_input_from(i)
 
             @if_e(typ == -100)
             def _():
