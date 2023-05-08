@@ -63,11 +63,8 @@ class Matchmaker:
         self.paired_patients = \
             self.oram_type(self.N, entry_size=log2(self.N),
                            init_rounds=0, value_type=self.basic_type)
-        request_therapist = \
-            self.oram_type(self.N, entry_size=log2(self.N),
-                           init_rounds=0, value_type=self.basic_type)
         self.unpaired = OStack(self.N, oram_type=self.oram_type,
-                               int_type=self.int_type)
+                           int_type=self.int_type)
 
         @for_range(init_rounds)
         def _(i):
@@ -96,7 +93,6 @@ class Matchmaker:
                     print_ln('run out of acceptable therapists')
                     crash()
 
-            request_therapist[patient] = therapist.read()
             self.request_therapist(patient, therapist.read(), True)
             print_ln('patient: %s, pref: %s, left: %s',
                      *(x.reveal() for x in (patient, pref, self.unpaired.size)))
