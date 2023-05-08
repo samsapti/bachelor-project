@@ -6,8 +6,11 @@ from Compiler.util import *
 
 from Compiler.oram import OptimalORAM
 
-from Compiler.library import for_range, do_while, time, if_, print_ln, crash, print_str
+from Compiler.library import for_range, do_while, time, if_, print_ln, crash, print_str, break_loop
 from Compiler.gs import OMatrix, OStack
+
+# Optimizations
+program.use_edabit(True)
 
 
 class Matchmaker:
@@ -27,19 +30,22 @@ class Matchmaker:
         self.unpaired.append(patient, for_real)
 
     def request_therapist(self, patient, therapist, for_real):
-        (requested_therapist,), free = self.paired_patients.read(therapist)
+        experience = self.t_exps[therapist][0]
+        (old_patient,), free = self.paired_patients.read(therapist)  # patient paired to therapist
         paired = 1 - free
-        rank_patient = self.t_exps[therapist][patient]
-        (rank_requested_therapist,), worst_therapist = self.t_exps[therapist].read(paired*requested_therapist)
-        leaving = self.int_type(rank_patient) < self.int_type(rank_requested_therapist)
-        if self.M < self.N:
-            leaving = 1 - (1 - leaving) * (1 - worst_therapist)
-        print_str('therapist: %s, patient: %s, requested therapist: %s, worst therapist: %s, ',
-                  *(x.reveal() for x in (therapist, patient, requested_therapist, worst_therapist)))
-        print_ln('rank patient: %s, rank requested therapist: %s, paired: %s, leaving: %s',
+        rank_patient = self.p_cases[patient][0]
+        rank_old_patient = self.p_cases[old_patient][0] * paired
+        matches_exp = self.int_type(rank_patient) == self.int_type(experience)
+        same_as_old = self.int_type(rank_patient) != self.int_type(rank_old_patient)
+        leaving = paired * matches_exp * same_as_old
+
+        print_str('therapist: %s, patient: %s, old patient: %s, ',  # worst therapist: %s, ',
+                  *(x.reveal() for x in (therapist, patient, old_patient)))  # , worst_therapist)))
+        print_ln('rank patient: %s, rank old patient: %s, paired: %s, leaving: %s',
                  *(x.reveal() for x in
-                   (rank_patient, rank_requested_therapist, paired, leaving)))
-        self.unpair(requested_therapist, therapist, paired * leaving * for_real)
+                   (rank_patient, rank_old_patient, paired, leaving)))
+
+        self.unpair(old_patient, therapist, paired * leaving * for_real)
         self.pair(patient, therapist, (1 - (paired * (1 - leaving))) * for_real)
         self.unpaired.append(patient, paired * (1 - leaving) * for_real)
 
@@ -50,6 +56,7 @@ class Matchmaker:
         else:
             loop = for_range(n_loops)
             init_rounds = n_loops / self.M
+
         self.paired_therapists = \
             self.oram_type(self.N, entry_size=log2(self.N),
                            init_rounds=0, value_type=self.basic_type)
@@ -60,7 +67,7 @@ class Matchmaker:
             self.oram_type(self.N, entry_size=log2(self.N),
                            init_rounds=0, value_type=self.basic_type)
         self.unpaired = OStack(self.N, oram_type=self.oram_type,
-                                int_type=self.int_type)
+                               int_type=self.int_type)
 
         @for_range(init_rounds)
         def _(i):
@@ -72,40 +79,54 @@ class Matchmaker:
             rounds.iadd(1)
             time()
             patient = self.unpaired.pop()
-            pref = self.int_type(request_therapist[patient])
-            if self.M < self.N and n_loops is None:
-                @if_((pref == self.M).reveal())
+            pref = self.int_type(p_cases[patient][0])  # patient suffers from pref
+            therapist = types.MemValue(self.int_type(0))
+
+            # Get index of next free therapist who has experience with pref
+            @for_range(self.N)
+            def _(i):
+                (_,), free = self.paired_patients.read(i)
+                @if_(((pref == t_exps[i][0]) * free).reveal())
+                def _():
+                    therapist.write(self.int_type(i))
+                    break_loop()
+
+                @if_((i == self.N).reveal())
                 def _():
                     print_ln('run out of acceptable therapists')
                     crash()
-            request_therapist[patient] = pref + 1
-            self.request_therapist(patient, self.p_cases[patient][pref], True)
+
+            request_therapist[patient] = therapist.read()
+            self.request_therapist(patient, therapist.read(), True)
             print_ln('patient: %s, pref: %s, left: %s',
                      *(x.reveal() for x in (patient, pref, self.unpaired.size)))
             return types.regint((self.unpaired.size > 0).reveal())
+
         print_ln('%s rounds', rounds)
+        print_ln('\nPRINTING PAIRS\n')
 
         @for_range(init_rounds)
         def _(i):
-            types.cint(i).print_reg('ther')
-            self.paired_patients[i].reveal().print_reg('pati')
+            print_ln('patient %s : therapist %s', i, self.paired_therapists[i].reveal())
+            #print_ln('therapist %s : patient %s', i, self.paired_patients[i].reveal())
+            #types.cint(i).print_reg('ther')
+            #self.paired_patients[i].reveal().print_reg('pati')
 
-    def __init__(self, N, p_cases, t_exps, M=1, reverse=False,
+    def __init__(self, p_cases, t_exps, N, M=None, reverse=False,
                  oram_type=OptimalORAM, int_type=types.sint):
         self.N = N
-        self.M = M
+        self.M = N if M is None else M
         self.p_cases = p_cases
         self.t_exps = t_exps
         self.reverse = reverse
         self.oram_type = oram_type
         self.int_type = int_type
         self.basic_type = int_type.basic_type
-        print('match', N, M)
 
 
 # Constants
 PLAYERS = 3
-MATCHING_SIZE = 10
+MATCHING_SIZE = 50
 
 p_shares = Matrix(rows=PLAYERS, columns=MATCHING_SIZE, value_type=types.sint)
 t_shares = Matrix(rows=PLAYERS, columns=MATCHING_SIZE, value_type=types.sint)
@@ -114,28 +135,18 @@ t_shares = Matrix(rows=PLAYERS, columns=MATCHING_SIZE, value_type=types.sint)
 # The matrix is ordered as m[row:player][col:share]
 @for_range(PLAYERS)
 def _(i):
-    p_index = MemValue(cint(0))
-    t_index = MemValue(cint(0))
+    @for_range(2 * MATCHING_SIZE)
+    def _(j):
+        index = j % MATCHING_SIZE
+        typ = sint.get_input_from(i)
 
-    @do_while
-    def _():
-        try:
-            typ = cint.get_input_from(i)
+        @if_((typ == -100).reveal())
+        def _():
+            p_shares[i][index] = sint.get_input_from(i)
 
-            @if_e(typ == -100)
-            def _():
-                p_shares[i][p_index.read()] = sint.get_input_from(i)
-                p_index.iadd(1)
-            @else_
-            def _():
-                @if_(typ == -200)
-                def _():
-                    t_shares[i][t_index.read()] = sint.get_input_from(i)
-                    t_index.iadd(1)
-
-            return 1
-        except Exception:
-            return 0
+        @if_((typ == -200).reveal())
+        def _():
+            t_shares[i][index] = sint.get_input_from(i)
 
 # Add entire column together to reveal secret-shared input
 p_cases = OMatrix(N=MATCHING_SIZE, M=1, oram_type=OptimalORAM, int_type=types.sint)
@@ -144,7 +155,10 @@ t_exps = OMatrix(N=MATCHING_SIZE, M=1, oram_type=OptimalORAM, int_type=types.sin
 @for_range(MATCHING_SIZE)
 def _(i):
     p_cases[i][0] = sum(p_shares.get_column(i))
+    print_ln('p_case %s: %s', i, p_cases[i][0].reveal())
     t_exps[i][0] = sum(t_shares.get_column(i))
+    print_ln('t_exp %s: %s', i, t_exps[i][0].reveal())
 
-mm = Matchmaker(MATCHING_SIZE, p_cases, t_exps)
+# Run algorithm
+mm = Matchmaker(p_cases, t_exps, N=MATCHING_SIZE, M=1)
 mm.match()
