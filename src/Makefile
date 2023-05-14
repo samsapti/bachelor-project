@@ -16,7 +16,7 @@ ssl:
 	cd $(MP_SPDZ_PATH) && Scripts/setup-ssl.sh 3
 
 %.mpc: _phony
-	python3 $(MP_SPDZ_PATH)/compile.py -R 64 -O $@
+	cd $(MP_SPDZ_PATH) && python3 compile.py -R 64 -O ../$@
 
 %:
 	$(MAKE) -C $(MP_SPDZ_PATH) $@
