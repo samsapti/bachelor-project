@@ -36,8 +36,8 @@ class Matchmaker:
         same_as_old = self.int_type(rank_patient) != self.int_type(rank_old_patient)
         leaving = paired * matches_exp * same_as_old
 
-        print_str('therapist: %s, patient: %s, old patient: %s, ',  # worst therapist: %s, ',
-                  *(x.reveal() for x in (therapist, patient, old_patient)))  # , worst_therapist)))
+        print_str('therapist: %s, patient: %s, old patient: %s, ',
+                  *(x.reveal() for x in (therapist, patient, old_patient)))
         print_ln('rank patient: %s, rank old patient: %s, paired: %s, leaving: %s',
                  *(x.reveal() for x in
                    (rank_patient, rank_old_patient, paired, leaving)))
@@ -76,7 +76,7 @@ class Matchmaker:
             pref = self.int_type(p_cases[patient][0])  # patient suffers from pref
             therapist = types.MemValue(self.int_type(0))
 
-            # Get index of next free therapist who has experience with pref
+            # Get index of first free therapist who has experience with pref
             @for_range(self.N)
             def _(i):
                 (_,), free = self.paired_patients.read(i)
@@ -101,9 +101,6 @@ class Matchmaker:
         @for_range(init_rounds)
         def _(i):
             print_ln('patient %s : therapist %s', i, self.paired_therapists[i].reveal())
-            #print_ln('therapist %s : patient %s', i, self.paired_patients[i].reveal())
-            #types.cint(i).print_reg('ther')
-            #self.paired_patients[i].reveal().print_reg('pati')
 
     def __init__(self, p_cases, t_exps, N, M=None, reverse=False,
                  oram_type=OptimalORAM, int_type=types.sint):
@@ -125,7 +122,6 @@ p_shares = Matrix(rows=PLAYERS, columns=MATCHING_SIZE, value_type=types.sint)
 t_shares = Matrix(rows=PLAYERS, columns=MATCHING_SIZE, value_type=types.sint)
 
 # Fill data from players into the matrices
-# The matrix is ordered as m[row:player][col:share]
 @for_range(PLAYERS)
 def _(i):
     @for_range(2 * MATCHING_SIZE)
@@ -141,7 +137,7 @@ def _(i):
         def _():
             t_shares[i][index] = sint.get_input_from(i)
 
-# Add entire column together to reveal secret-shared input
+# Add entire columns together to recreate secret-shared input in ORAM
 p_cases = OMatrix(N=MATCHING_SIZE, M=1, oram_type=OptimalORAM, int_type=types.sint)
 t_exps = OMatrix(N=MATCHING_SIZE, M=1, oram_type=OptimalORAM, int_type=types.sint)
 
