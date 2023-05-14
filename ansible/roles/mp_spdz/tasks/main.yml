@@ -13,6 +13,7 @@
       - clang
       - cmake
       - git
+      - libgmp-dev
       - libntl-dev
       - libsodium-dev
       - libssl-dev
@@ -25,8 +26,8 @@
 - name: Clone MP-SPDZ
   ansible.builtin.git:
     repo: https://github.com/data61/MP-SPDZ
-    dest: "{{ mp_spdz_dir }}"
-    version: v0.3.5
+    dest: "{{ mp_spdz.dir }}"
+    version: "{{ mp_spdz.version }}"
     clone: true
     update: false
     recursive: true
@@ -35,7 +36,7 @@
 
 - name: Create CONFIG.mine
   ansible.builtin.copy:
-    dest: "{{ mp_spdz_dir }}/CONFIG.mine"
+    dest: "{{ mp_spdz.dir }}/CONFIG.mine"
     owner: "{{ username }}"
     mode: u=rw,g=r,o=r
     content: |
@@ -43,11 +44,10 @@
 
 - name: Build MP-SPDZ
   community.general.make:
-    chdir: "{{ mp_spdz_dir }}"
+    chdir: "{{ mp_spdz.dir }}"
     jobs: "{{ ansible_processor_nproc }}"
     target: "{{ item }}"
   loop:
     - boost
     - libote
-    - mpir
-    - semi-party.x
+    - semi2k-party.x
