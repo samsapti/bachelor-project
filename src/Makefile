@@ -8,7 +8,7 @@ config:
 
 deps: config
 	sudo apt install -y automake build-essential clang cmake git libgmp-dev \
-	    libntl-dev libsodium-dev libssl-dev libtool m4 python3 texinfo yasm
+	    libntl-dev libsodium-dev libssl-dev libtool m4 openssl python3 texinfo yasm
 	$(MAKE) -C $(MP_SPDZ_PATH) boost
 	$(MAKE) -C $(MP_SPDZ_PATH) libote
 
