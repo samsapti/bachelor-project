@@ -144,9 +144,9 @@ t_exps = OMatrix(N=MATCHING_SIZE, M=1, oram_type=OptimalORAM, int_type=types.sin
 @for_range(MATCHING_SIZE)
 def _(i):
     p_cases[i][0] = sum(p_shares.get_column(i))
-    print_ln('p_case %s: %s', i, p_cases[i][0].reveal())
+    print_ln('patient %s suffers from case %s', i, p_cases[i][0].reveal())
     t_exps[i][0] = sum(t_shares.get_column(i))
-    print_ln('t_exp %s: %s', i, t_exps[i][0].reveal())
+    print_ln('therapist %s is experienced with case %s', i, t_exps[i][0].reveal())
 
 # Run algorithm
 mm = Matchmaker(p_cases, t_exps, N=MATCHING_SIZE, M=1)
