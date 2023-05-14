@@ -3,7 +3,7 @@
 cd MP-SPDZ
 
 if [[ $1 == "-k" ]]; then
-    killall semi-party.x
+    killall semi2k-party.x
     exit $?
 fi
 
