@@ -9,9 +9,6 @@ from Compiler.oram import OptimalORAM
 from Compiler.library import for_range, do_while, time, if_, print_ln, crash, print_str, break_loop
 from Compiler.gs import OMatrix, OStack
 
-# Optimizations
-program.use_edabit(True)
-
 
 class Matchmaker:
     """
