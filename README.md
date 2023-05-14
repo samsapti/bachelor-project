@@ -23,10 +23,11 @@ system. Make sure to have GNU Make installed.
    as a submodule.
 2. Navigate to `src/`.
 3. Run `make -j$(nproc)` to install dependencies and compile MP-SPDZ.
-4. Run `./gen_data.sh 50` to randomly generate data for the computation.
-5. Run `./run.sh` to run the computation with three MPC parties locally in the
+4. Run `make gale_shapley.mpc` to compile the program.
+5. Run `./gen_data.sh 50` to randomly generate data for the computation.
+6. Run `./run.sh` to run the computation with three MPC parties locally in the
    background. The computation will print output to `src/out-p${n}.txt` (`n =
-   party`, `./run.sh -k` to kill computation).
+   #party`, `./run.sh -k` to kill computation).
 
 ### Summary
 
@@ -34,6 +35,7 @@ system. Make sure to have GNU Make installed.
 git submodule update --init
 cd src/
 make -j$(nproc)
+make gale_shapley.mpc
 ./gen_data.sh 50
 ./run.sh
 ```
