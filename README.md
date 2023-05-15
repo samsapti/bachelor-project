@@ -40,6 +40,9 @@ make gale_shapley.mpc
 ./run.sh
 ```
 
+If you want to change the size of the dataset, you need to change the
+`MATCHING_SIZE` constant in `gale_shapley.mpc` as well.
+
 ## License
 
 This project is licensed under the BSD 3-Clause license.
